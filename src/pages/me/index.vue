@@ -12,14 +12,15 @@
 </template>
 <script>
 // import qcloud from 'wafer2-client-sdk'
-import {
-  showSuccess,
-  post,
-  showModal,
-  loginAsync,
-  getUserInfoAsync
-  // logger
-} from '@/utils'
+import wxp from 'minapp-api-promise'
+// import {
+//   showSuccess,
+//   post,
+//   showModal,
+//   loginAsync,
+//   getUserInfoAsync
+//   // logger
+// } from '@/utils'
 // import '../../vendor'
 // import config from '@/config'
 export default {
@@ -41,32 +42,34 @@ export default {
       try {
         console.log('================')
         // 获取 code
-        const { code } = await loginAsync()
+        const { code } = await wxp.login()
         console.log(code)
         // 获取加密的userInfo信息
-        const { userInfo } = await getUserInfoAsync({
+        const { userInfo } = await wxp.getUserInfo({
           withCredentials: true,
           lang: 'zh_CN'
         })
         const data = { code, userInfo }
         console.log(data)
-        const res = await post('/weapp/login', data)
+        const res = await wxp.post('/weapp/login', data)
         console.log('-----login-------')
         this.userInfo = res
         wx.setStorageSync('userInfo', res)
       } catch (err) {
         console.log(err)
-        showModal('授权失败', `权cai可以打卡哦!`)
+        wxp.showModal('授权失败', `权cai可以打卡哦!`)
         // logger.error('Cheese is too ripe!')
       }
     },
     async punchIn() {
       console.log('daka')
-      const res = await post('/weapp/punchIn', { openId: this.userInfo.openId })
+      const res = await wxp.post('/weapp/punchIn', {
+        openId: this.userInfo.openId
+      })
       this.punchData = res
       const difference = new Date().getTime() - res.punchTime
       if (difference < 1000 * 60 * 60 * 24) {
-        showSuccess('明天再来吧!')
+        wxp.showSuccess('明天再来吧!')
         this.punch = true
       }
     }

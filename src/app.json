@@ -16,11 +16,15 @@
     "list": [
       {
         "pagePath": "pages/index/main",
-        "text": "主页"
+        "text": "主页",
+        "iconPath": "static/img/icon_home_nor.png",
+        "selectedIconPath": "static/img/icon_home_sel.png"
       },
       {
         "pagePath": "pages/me/main",
-        "text": "我的信息"
+        "text": "我的信息",
+        "iconPath": "static/img/icon_my_nor.png",
+        "selectedIconPath": "static/img/icon_my_sel.png"
       }
     ]
   }
