@@ -12,7 +12,7 @@
           <div class="zan-card__detail-row">
             <!-- <div class="zan-card__right-col">¥ {{item.taobaoPrice}}</div> -->
             <div class="zan-card__left-col zan-ellipsis--l2">
-              {{item.title}}{{item.styleNumber}}
+              {{item.title}}{{item.description}}
             </div>
           </div>
 
@@ -26,7 +26,7 @@
           </div> -->
 
           <div class="zan-card__detail-row zan-c-gray-darker">
-            <div class="zan-card__left-col zan-c-red">{{item.stitle}}</div>
+            <div class="zan-card__left-col zan-c-red">{{item.loginname}}</div>
 
           </div>
         </div>
@@ -50,7 +50,7 @@ export default {
       // return this.item.img === undefined
       //   ? this.imageCDN + '/img/' + this.defImg
       //   : this.item.sImg
-      return this.item.sImg
+      return this.item.avatar
     }
   },
   methods: {

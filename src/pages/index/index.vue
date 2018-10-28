@@ -1,105 +1,180 @@
-<template>
-  <div class="container" @click="clickHandle('test click', $event)">
-
-    <div class="userinfo" @click="bindViewTap">
-      <img class="userinfo-avatar" v-if="userInfo.avatarUrl" :src="userInfo.avatarUrl" background-size="cover" />
-      <div class="userinfo-nickname">
-        <card :text="userInfo.nickName"></card>
-      </div>
-    </div>
-
-    <div class="usermotto">
-      <div class="user-motto">
-        <card :text="motto"></card>
-      </div>
-    </div>
-
-    <form class="form-container">
-      <input type="text" class="form-control" v-model="motto" placeholder="v-model" />
-      <input type="text" class="form-control" v-model.lazy="motto" placeholder="v-model.lazy" />
-    </form>
-    <a href="/pages/counter/main" class="counter">去往Vuex示例页面</a>
-  </div>
+<template lang="pug">
+.container
+  .doc-title.zan-hairline--bottom
+    p(v-if='items.length > 0')
+      a(@longpress="setClip(item)", v-for="item in items" :key="item.id" @click="arcitleDetail(item)")
+        NewsCard( :item='item' :imageCDN='imageCDN' :articleUrl='articleUrl' :defImg='defImg')
+    p(v-else) 没有文章数据
+    p.text-footer(v-if='!more') 没有更多数据
 </template>
-
 <script>
-import card from '@/components/card'
+// import { get } from '@/utils'
+import NewsCard from '@/components/NewsCard'
+import { mapState } from 'vuex'
+const Fly = require('flyio/dist/npm/wx')
+const fly = new Fly()
+const R = require('ramda')
+// import * as R from 'ramda'
+// 35条数据
+// 每次加载10条
+// 0页   0-10
+// 1     10-20
+// 2     20-30（5）
+// page 当前第几页
 
+// 没有更多数据
+// 1. page=0 不能显示这条提醒
+// 2. page>0 数据长度<10 停止触底加载
 export default {
   data() {
     return {
-      motto: 'Hello World',
-      userInfo: {}
+      userInfo: {},
+      items: [],
+      shoesData: {
+        sex: '',
+        style: '',
+        size: '',
+        searchKey: ''
+      },
+      page: 0,
+      more: true
     }
   },
-
   components: {
-    card
+    NewsCard
   },
-
+  computed: {
+    ...mapState(['imageCDN', 'defImg', 'articleUrl'])
+  },
   methods: {
-    bindViewTap() {
-      const url = '../logs/main'
-      wx.navigateTo({ url })
-    },
-    getUserInfo() {
-      // 调用登录接口
-      wx.login({
-        success: () => {
-          wx.getUserInfo({
-            success: res => {
-              this.userInfo = res.userInfo
+    // 获取经络数据
+    async getList(init) {
+      if (init) {
+        this.page = 1
+        this.more = true
+      }
+      wx.showNavigationBarLoading()
+      wx.showLoading({
+        title: '玩命加载中'
+      })
+      try {
+        // const items = await get('/mina/product/list', {
+        //   shoesData: this.shoesData,
+        //   page: this.page // 分页
+        // })
+        // http://www.xugaoyang.com/api/v1/posts?currentPage=1
+        let items = await fly.get(`${this.articleUrl}/api/v1/posts`, {
+          currentPage: this.page
+        })
+
+        // 查出来的文章数据和作者数据是分别放到两个数组中,把数据重新组合一下,
+        // 通过文章数组中的作者id,到作者数组中过滤出头像链接
+        // 筛选出重要的数据,避免超过小程序限制的大小
+        //
+        items = items.data
+        const processItems = v => {
+          const temp = R.compose(
+            R.props(['avatar', 'loginname']),
+            // R.take(1),
+            R.find(R.propEq('_id', v.authorId))
+          )(items.authors)
+          return Object.assign(
+            {},
+            {
+              _id: v._id,
+              title: v.title,
+              loginname: temp[1],
+              avatar: temp[0]
             }
-          })
+          )
         }
+        items = R.map(processItems)(items.posts)
+        console.log('-items.posts----------------')
+        console.log(items)
+        // 查询出来的数据太大了一次传递不到下个页面,先存到本地
+        wx.setStorageSync('articleList', items)
+
+        // 设置显示更多的状态
+        if (items.length < 10 && this.page > 0) {
+          this.more = false
+          console.log(this.more)
+        }
+        if (init) {
+          this.items = items
+          wx.stopPullDownRefresh()
+        } else {
+          // 下拉刷新，不能直接覆盖文章 而是累加
+          this.items = this.items.concat(items)
+        }
+        console.log('--------------------')
+        console.log(this.items)
+      } catch (error) {
+        console.log(error)
+      }
+
+      wx.hideNavigationBarLoading()
+      wx.hideLoading()
+    },
+    async arcitleDetail(data) {
+      // console.log('---arcitleDetail------------')
+      // console.log(data.id)
+      wx.navigateTo({
+        url: `/pages/articleDetail/main?articleId=${data._id}`
       })
     },
-    clickHandle(msg, ev) {
-      console.log('clickHandle:', msg, ev)
+    // 向剪贴板中写入信息
+    async setClip(data) {
+      let str = `款号: ${data.styleNumber} 价格: ${data.taobaoPrice} 尺码: ${
+        data.size
+      } 库存: ${data.count}`
+      wx.setClipboardData({
+        data: str
+      })
+      // 震动下表示完成
+      wx.vibrateShort()
     }
   },
+  onPullDownRefresh() {
+    this.getList(true)
+  },
+  onReachBottom() {
+    if (!this.more) {
+      // 没有更多了
+      return false
+    }
+    this.page = this.page + 1
+    this.getList()
+  },
+  onShow() {
+    console.log('onShow----------')
+  },
+  mounted() {
+    wx.setNavigationBarTitle({
+      title: '文章列表页面'
+    })
+    // this.shoesData = R.merge(
+    //   this.shoesData,
+    //   JSON.parse(this.$root.$mp.query.shoesData)
+    // )
+    // console.log('shoesData----------------------------------')
+    // console.log(this.shoesData)
+    this.getList(true)
+  },
 
-  created() {
-    // 调用应用实例的方法获取全局数据
-    this.getUserInfo()
+  onLoad: function(options) {
+    console.log('onLoad-------')
+    if (options.name) {
+      // 这个pageId的值存在则证明首页的开启来源于用户点击来首页,同时可以通过获取到的pageId的值跳转导航到对应的详情页
+      wx.navigateTo({
+        url: '/pages/detail/main?name=' + options.name
+      })
+    }
   }
 }
 </script>
 
-<style scoped>
-.userinfo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+<style lang="sass" scoped>
 
-.userinfo-avatar {
-  width: 128rpx;
-  height: 128rpx;
-  margin: 20rpx;
-  border-radius: 50%;
-}
 
-.userinfo-nickname {
-  color: #aaa;
-}
 
-.usermotto {
-  margin-top: 150px;
-}
-
-.form-control {
-  display: block;
-  padding: 0 12px;
-  margin-bottom: 5px;
-  border: 1px solid #ccc;
-}
-
-.counter {
-  display: inline-block;
-  margin: 10px auto;
-  padding: 5px 10px;
-  color: blue;
-  border: 1px solid blue;
-}
 </style>

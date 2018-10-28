@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "flyio": "^0.6.2",
+    "marked": "^0.5.1",
     "minapp-api-promise": "^1.0.2",
     "mpvue": "^1.0.11",
     "mpvue-wxparse": "^0.6.5",

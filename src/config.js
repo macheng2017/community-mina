@@ -6,7 +6,7 @@ const host = 'https://mina.guolinaijiu.com'
 const config = {
   host,
   loginUrl: `${host}/weapp/login`,
-  articleUrl: 'https://www.guolinaijiu.com',
+  articleUrl: 'https://www.xugaoyang.com',
   imageCDN: 'http://mini.guolinaijiu.com/'
 }
 export default config

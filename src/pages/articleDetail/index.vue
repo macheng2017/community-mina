@@ -6,8 +6,11 @@
 
 <script>
 import wxParse from 'mpvue-wxparse'
-const R = require('ramda')
-
+import marked from 'marked'
+import { mapState } from 'vuex'
+// const R = require('ramda')
+const Fly = require('flyio/dist/npm/wx')
+const fly = new Fly()
 export default {
   components: {
     wxParse
@@ -20,6 +23,9 @@ export default {
       articleList: []
     }
   },
+  computed: {
+    ...mapState(['imageCDN', 'articleUrl'])
+  },
   methods: {
     preview(src, e) {
       // do something
@@ -30,22 +36,22 @@ export default {
       console.log('herf')
     }
   },
-  onShow() {
-    let article = R.filter(R.propEq('id', this.articleId))(this.articleList)
-    // console.log(article[0])
-    this.article = R.head(article).comments
-    wx.setNavigationBarTitle({
-      title: R.head(article).stitle
-    })
-  },
+  onShow() {},
   async mounted() {
-    const articleList = await wx.getStorageSync('articleList')
-    // console.log(articleList)
-    this.articleList = articleList
-    // this.item = JSON.parse(this.$root.$mp.query.item)
     const articleId = this.$root.$mp.query.articleId
-    // console.log(articleId)
-    this.articleId = articleId
+    let articleData = await fly.get(
+      `${this.articleUrl}/api/v1/posts/${articleId}`
+    )
+    articleData = articleData.data.post
+    wx.setNavigationBarTitle({
+      title: articleData.title
+    })
+    // console.log(articleData)
+    articleData =
+      articleData.description + articleData.content + articleData.recommendUrl
+
+    // 支持marked
+    this.article = marked(articleData)
   }
 }
 </script>
